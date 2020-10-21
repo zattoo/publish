@@ -1,35 +1,30 @@
 {
-  "name": "javascript-action",
+  "name": "z-publish",
   "version": "1.0.0",
-  "description": "JavaScript Action Template",
+  "description": "GitHub Action to publish projects and packages",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint .",
-    "prepare": "ncc build index.js -o dist --source-map --license licenses.txt",
-    "test": "jest",
-    "all": "npm run lint && npm run prepare && npm run test"
+    "build": "ncc build index.js -o dist --source-map --license licenses.txt"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/javascript-action.git"
+    "url": "git+https://github.com/zattoo/publish.git"
   },
   "keywords": [
-    "GitHub",
-    "Actions",
-    "JavaScript"
+    "GitHub Actions",
+    "publish",
+    "npm",
+    "release"
   ],
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/actions/javascript-action/issues"
+    "url": "https://github.com/zattoo/publish/issues"
   },
-  "homepage": "https://github.com/actions/javascript-action#readme",
+  "homepage": "https://github.com/zattoo/publish#readme",
   "dependencies": {
-    "@actions/core": "^1.2.5"
-  },
-  "devDependencies": {
-    "@vercel/ncc": "^0.24.0",
-    "eslint": "^7.4.0",
-    "jest": "^26.1.0"
+    "@actions/core": "1.2.6",
+    "@actions/github": "4.0.0",
+    "@vercel/ncc": "0.24.1"
   }
 }
