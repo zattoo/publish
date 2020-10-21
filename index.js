@@ -7,7 +7,7 @@ async function run() {
         const github_token = core.getInput('github_token', {required: true});
         const npm_token = core.getInput('npm_token', {required: true});
 
-        const octokit = new github.GitHub(github_token, {previews: ['flash', 'ant-man']});
+        const octokit = new github.getOctokit(github_token);
 
         const response = await octokit.request('GET /repos/{owner}/{repo}/package.json', {
             owner: github.context.repo.owner,
