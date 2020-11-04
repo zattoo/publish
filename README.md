@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       # your stuff
-      - uses: zattoo/publish@development
+      - uses: zattoo/publish@v1
         with:
           github_token: ${{github.token}}
           npm_token: ${{secrets.NPM_TOKEN}}
