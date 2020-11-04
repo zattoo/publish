@@ -1,5 +1,5 @@
 {
-    "name": "publish",
+    "name": "seo",
     "version": "1.0.0",
     "description": "GitHub Action to publish projects and packages",
     "main": "src/index.js",
@@ -26,10 +26,8 @@
         "@actions/core": "1.2.6",
         "@actions/github": "4.0.0",
         "@vercel/ncc": "0.24.1",
-        "changelog-parser": "2.8.0",
         "fs-extra": "9.0.1",
-        "glob": "7.1.6",
-        "npm-registry-fetch": "8.1.5"
+        "glob": "7.1.6"
     },
     "devDependencies": {
         "@types/fs-extra": "9.0.2",
