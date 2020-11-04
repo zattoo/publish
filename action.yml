@@ -1,4 +1,4 @@
-name: 'Publish'
+name: 'Release & Publish'
 description: 'GitHub Action to release projects and publish packages'
 author: 'godban'
 inputs:
