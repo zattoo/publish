@@ -37374,7 +37374,7 @@ async function run() {
 
             const tag = isSingle
                 ? version // for ex. '1.2.3', '3.2020.0'
-                : `${name.replace('@zattoo/', '')}/${version}` // for ex. 'app/3.2020.0', 'zapi/3.17.2'
+                : `${version}-${name.replace('@zattoo/', '')}` // for ex. '3.2020.0-app', '3.17.2-zapi'
 
             core.info(`\nChecking ${tag}`);
 
