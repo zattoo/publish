@@ -1,8 +1,8 @@
-const {exec} = require('child_process');
 const util = require('util');
 const fse = require('fs-extra');
 const glob = require('glob');
 const core = require('@actions/core');
+const exec = require('@actions/exec');
 const github = require('@actions/github');
 const changelogParser = require('changelog-parser');
 const npmFetch = require('npm-registry-fetch');
@@ -106,8 +106,8 @@ async function run() {
 
                 if (shallPublish) {
                     const publishConfig = pkg.publishConfig || {};
-                    const access = !publishConfig.access === 'restricted' ? '' : '--access=public';
-                    exec(`npm publish ${path} ${access}`);
+                    const access = publishConfig.access === 'restricted' ? '' : '--access=public';
+                    await exec.exec(`npm publish ${path} ${access}`);
                     core.info(`Published to npm registry: https://www.npmjs.com/package/${name}`);
                 }
             }

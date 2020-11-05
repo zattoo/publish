@@ -24,6 +24,7 @@
     "homepage": "https://github.com/zattoo/publish#readme",
     "dependencies": {
         "@actions/core": "1.2.6",
+        "@actions/exec": "1.0.4",
         "@actions/github": "4.0.0",
         "@vercel/ncc": "0.24.1",
         "changelog-parser": "2.8.0",
