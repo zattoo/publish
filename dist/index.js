@@ -37393,46 +37393,44 @@ async function run() {
             } catch {
             } // tag not found
 
-            const shallRelease = !tagResponse.data.tag_name;
+            const canRelease = !tagResponse.data.tag_name;
 
-            if (shallRelease) {
-                const changelog = await parseChangelog(`${path}/CHANGELOG.md`);
+            if (canRelease) {
+                let canPublish;
 
-                const entry = changelog.versions[0];
+                if (npm_token) {
+                    try {
+                        const npmVersions = await fetchNPMVersions(name, npm_token);
+                        canPublish = !npmVersions.includes(version); // new version
+                    } catch {
+                        canPublish = true; // new package
+                    }
+                }
 
-                await octokit.request('POST /repos/{owner}/{repo}/releases', {
-                    owner,
-                    repo,
-                    target_commitish: github.context.ref.split('refs/heads/')[1],
-                    tag_name: tag,
-                    name: tag,
-                    body: entry.body,
-                    prerelease: !!version.match(/alpha|beta|rc/),
-                });
+                if (canPublish) {
+                    await exec.exec(`npm publish ${path}`);
+                    core.info(`Published to npm registry: https://www.npmjs.com/package/${name}`);
 
-                core.info(`Release notes created: https://github.com/${owner}/${repo}/releases/tag/${tag}`);
+                    const changelog = await parseChangelog(`${path}/CHANGELOG.md`);
+
+                    const entry = changelog.versions[0];
+
+                    await octokit.request('POST /repos/{owner}/{repo}/releases', {
+                        owner,
+                        repo,
+                        target_commitish: github.context.ref.split('refs/heads/')[1],
+                        tag_name: tag,
+                        name: tag,
+                        body: entry.body,
+                        prerelease: !!version.match(/alpha|beta|rc/),
+                    });
+
+                    core.info(`Release notes created: https://github.com/${owner}/${repo}/releases/tag/${tag}`);
+                } else {
+                    core.info('Package is already exist. Nothing to do here');
+                }
             } else {
                 core.info('Release is already exist. Nothing to do here');
-            }
-
-            // npm package
-
-            if (shallRelease && npm_token) {
-                let shallPublish;
-
-                try {
-                    const npmVersions = await fetchNPMVersions(name, npm_token);
-                    shallPublish = !npmVersions.includes(version); // new version
-                } catch {
-                    shallPublish = true; // new package
-                }
-
-                if (shallPublish) {
-                    const publishConfig = pkg.publishConfig || {};
-                    const access = publishConfig.access === 'restricted' ? '' : '--access=public';
-                    await exec.exec(`npm publish ${path} ${access}`);
-                    core.info(`Published to npm registry: https://www.npmjs.com/package/${name}`);
-                }
             }
         }
     } catch (error) {
