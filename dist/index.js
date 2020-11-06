@@ -37413,22 +37413,22 @@ async function run() {
                 core.info('Release is already exist. Nothing to do here');
             }
 
-            let canPublish;
-
             if (npm_token) {
+                let canPublish;
+
                 try {
                     const npmVersions = await fetchNPMVersions(name, npm_token);
                     canPublish = !npmVersions.includes(version); // new version
                 } catch {
                     canPublish = true; // new package
                 }
-            }
 
-            if (canPublish) {
-                await exec.exec(`npm publish ${path}`);
-                core.info(`Published to npm registry: https://www.npmjs.com/package/${name}`);
-            } else {
-                core.info('Package is already exist. Nothing to do here');
+                if (canPublish) {
+                    await exec.exec(`npm publish ${path}`);
+                    core.info(`Published to npm registry: https://www.npmjs.com/package/${name}`);
+                } else {
+                    core.info('Package is already exist. Nothing to do here');
+                }
             }
         }
     } catch (error) {
