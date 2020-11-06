@@ -37341,8 +37341,8 @@ const parseChangelog = util.promisify(changelogParser);
 
 async function run() {
     try {
-        const npm_token = core.getInput('npm_token', {required: true});
         const github_token = core.getInput('github_token', {required: true});
+        const npm_token = core.getInput('npm_token');
         const sources = core.getInput('sources');
         const octokit = github.getOctokit(github_token);
 
