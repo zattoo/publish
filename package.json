@@ -1,6 +1,6 @@
 {
     "name": "publish",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "GitHub Action to publish projects and packages",
     "main": "src/index.js",
     "scripts": {

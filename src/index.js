@@ -29,6 +29,11 @@ async function run() {
 
         for await (const sourcePath of sourcePaths) {
             const path = `./${sourcePath}`;
+
+            if (!fse.lstatSync(path).isDirectory()) {
+                continue;
+            }
+
             const pathToPackage = `${path}/package.json`;
 
             const pkg = await fse.readJSON(pathToPackage);
