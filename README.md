@@ -26,9 +26,9 @@ Accepts glob pattern to work with multiple or other than root destinations.
 
 ### `notes`
 
-`string`
+`string` - path
 
-Optional. Release notes as a string, it will take priority over changelog entries
+Optional. Path to Release notes file, it will take priority over changelog entries
 
 ## Usage Example
 
