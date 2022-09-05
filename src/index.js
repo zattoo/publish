@@ -25,6 +25,7 @@ const parseChangelog = util.promisify(changelogParser);
 const getBody = async (changelogPath, notesPath) => {
     if (Boolean(notesPath)) {
         try {
+            console.log(notesPath);
             const releaseNotes = fse.readFile(notesPath, 'utf-8');
 
             return releaseNotes;
