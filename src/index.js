@@ -18,16 +18,16 @@ const parseChangelog = util.promisify(changelogParser);
 
 
 /**
- * @param {string} changelogPath
- * @param {string} [notesPath]
+ * @param {string} path
+ * @param {string} [notes]
  * @returns {Promise<string>}
  */
-const getBody = async (changelogPath, notesPath) => {
-    if (notesPath) {
-        return fse.readFile(notesPath, 'utf-8');
+const getBody = async (path, notes) => {
+    if (Boolean(notes)) {
+        return notes;
     }
 
-    const changelog = await parseChangelog(changelogPath);
+    const changelog = await parseChangelog(`${path}/CHANGELOG.md`);
     return changelog.versions[0].body;
 };
 
@@ -36,7 +36,7 @@ async function run() {
         const github_token = core.getInput('github_token', {required: true});
         const npm_token = core.getInput('npm_token');
         const sources = core.getInput('sources');
-        const notesPath = core.getInput('notes');
+        const notes = core.getInput('notes');
 
         const octokit = github.getOctokit(github_token);
 
@@ -94,7 +94,7 @@ async function run() {
             const canRelease = !tagResponse.data.tag_name;
 
             if (canRelease) {
-                const body = await getBody(`${path}/CHANGELOG.md`, notesPath);
+                const body = await getBody(path, notes);
 
                 await octokit.request('POST /repos/{owner}/{repo}/releases', {
                     owner,
