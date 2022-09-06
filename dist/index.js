@@ -15866,7 +15866,7 @@ function fromUrl (giturl, opts) {
     isGitHubShorthand(giturl) ? 'github:' + giturl : giturl
   )
   var parsed = parseGitUrl(url)
-  var shortcutMatch = url.match(new RegExp('^([^:]+):(?:(?:[^@:]+(?:[^@]+)?@)?([^/]*))[/](.+?)(?:[.]git)?($|#)'))
+  var shortcutMatch = url.match(/^([^:]+):(?:[^@]+@)?(?:([^/]*)\/)?([^#]+)/)
   var matches = Object.keys(gitHosts).map(function (gitHostName) {
     try {
       var gitHostInfo = gitHosts[gitHostName]
@@ -15880,7 +15880,7 @@ function fromUrl (giturl, opts) {
       var defaultRepresentation = null
       if (shortcutMatch && shortcutMatch[1] === gitHostName) {
         user = shortcutMatch[2] && decodeURIComponent(shortcutMatch[2])
-        project = decodeURIComponent(shortcutMatch[3])
+        project = decodeURIComponent(shortcutMatch[3].replace(/\.git$/, ''))
         defaultRepresentation = 'shortcut'
       } else {
         if (parsed.host && parsed.host !== gitHostInfo.domain && parsed.host.replace(/^www[.]/, '') !== gitHostInfo.domain) return
@@ -35881,7 +35881,7 @@ const SPEC_ALGORITHMS = ['sha256', 'sha384', 'sha512']
 // rather than [a-z0-9].
 const BASE64_REGEX = /^[a-z0-9+/]+(?:=?=?)$/i
 const SRI_REGEX = /^([a-z0-9]+)-([^?]+)([?\S*]*)$/
-const STRICT_SRI_REGEX = /^([a-z0-9]+)-([A-Za-z0-9+/=]{44,88})(\?[\x21-\x7E]*)*$/
+const STRICT_SRI_REGEX = /^([a-z0-9]+)-([A-Za-z0-9+/=]{44,88})(\?[\x21-\x7E]*)?$/
 const VCHAR_REGEX = /^[\x21-\x7E]+$/
 
 const defaultOpts = {
@@ -35896,7 +35896,8 @@ const defaultOpts = {
 
 const ssriOpts = (opts = {}) => ({ ...defaultOpts, ...opts })
 
-const getOptString = options => !options || !options.length ? ''
+const getOptString = options => !options || !options.length
+  ? ''
   : `?${options.join('?')}`
 
 const _onEnd = Symbol('_onEnd')
@@ -37339,11 +37340,34 @@ const fetchNPMVersions = (packageName, token) => {
 
 const parseChangelog = util.promisify(changelogParser);
 
+
+/**
+ * @param {string} changelogPath
+ * @param {string} [notesPath]
+ * @returns {Promise<string>}
+ */
+const getBody = async (changelogPath, notesPath) => {
+    if (Boolean(notesPath)) {
+        try {
+            const releaseNotes = await fse.readFile(notesPath, 'utf-8');
+
+            return releaseNotes;
+        } catch {
+            // Couldn't find Release notes, fallback to Changelog
+        }
+    }
+
+    const changelog = await parseChangelog(changelogPath);
+    return changelog.versions[0].body;
+};
+
 async function run() {
     try {
         const github_token = core.getInput('github_token', {required: true});
         const npm_token = core.getInput('npm_token');
         const sources = core.getInput('sources');
+        const notesPath = core.getInput('notes');
+
         const octokit = github.getOctokit(github_token);
 
         const isSingle = !sources;
@@ -37400,8 +37424,7 @@ async function run() {
             const canRelease = !tagResponse.data.tag_name;
 
             if (canRelease) {
-                const changelog = await parseChangelog(`${path}/CHANGELOG.md`);
-                const entry = changelog.versions[0];
+                const body = await getBody(`${path}/CHANGELOG.md`, notesPath);
 
                 await octokit.request('POST /repos/{owner}/{repo}/releases', {
                     owner,
@@ -37409,7 +37432,7 @@ async function run() {
                     target_commitish: github.context.ref.split('refs/heads/')[1],
                     tag_name: tag,
                     name: tag,
-                    body: entry.body,
+                    body,
                     prerelease: !!version.match(/alpha|beta|rc/),
                 });
 
@@ -37546,7 +37569,7 @@ module.exports = JSON.parse("[[\"0\",\"\\u0000\",128],[\"a1\",\"｡\",62],[\"814
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse("{\"_from\":\"make-fetch-happen@^8.0.9\",\"_id\":\"make-fetch-happen@8.0.10\",\"_inBundle\":false,\"_integrity\":\"sha512-jPLPKQjBmDLK5r1BdyDyNKBytmkv2AsDWm2CxHJh+fqhSmC9Pmb7RQxwOq8xQig9+AWIS49+51k4f6vDQ3VnrQ==\",\"_location\":\"/make-fetch-happen\",\"_phantomChildren\":{},\"_requested\":{\"type\":\"range\",\"registry\":true,\"raw\":\"make-fetch-happen@^8.0.9\",\"name\":\"make-fetch-happen\",\"escapedName\":\"make-fetch-happen\",\"rawSpec\":\"^8.0.9\",\"saveSpec\":null,\"fetchSpec\":\"^8.0.9\"},\"_requiredBy\":[\"/npm-registry-fetch\"],\"_resolved\":\"https://registry.npmjs.org/make-fetch-happen/-/make-fetch-happen-8.0.10.tgz\",\"_shasum\":\"f37c5d93d14290488ca6a2ae917a380bd7d24f16\",\"_spec\":\"make-fetch-happen@^8.0.9\",\"_where\":\"/Users/godban/Projects/publish/node_modules/npm-registry-fetch\",\"author\":{\"name\":\"Kat Marchán\",\"email\":\"kzm@zkat.tech\"},\"bugs\":{\"url\":\"https://github.com/npm/make-fetch-happen/issues\"},\"bundleDependencies\":false,\"dependencies\":{\"agentkeepalive\":\"^4.1.0\",\"cacache\":\"^15.0.0\",\"http-cache-semantics\":\"^4.0.4\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"is-lambda\":\"^1.0.1\",\"lru-cache\":\"^6.0.0\",\"minipass\":\"^3.1.3\",\"minipass-collect\":\"^1.0.2\",\"minipass-fetch\":\"^1.3.0\",\"minipass-flush\":\"^1.0.5\",\"minipass-pipeline\":\"^1.2.2\",\"promise-retry\":\"^1.1.1\",\"socks-proxy-agent\":\"^5.0.0\",\"ssri\":\"^8.0.0\"},\"deprecated\":false,\"description\":\"Opinionated, caching, retrying fetch client\",\"devDependencies\":{\"mkdirp\":\"^1.0.3\",\"nock\":\"^11.9.1\",\"npmlog\":\"^4.1.2\",\"require-inject\":\"^1.4.2\",\"rimraf\":\"^2.7.1\",\"safe-buffer\":\"^5.2.0\",\"standard\":\"^14.3.1\",\"standard-version\":\"^7.1.0\",\"tacks\":\"^1.2.6\",\"tap\":\"^14.10.6\"},\"engines\":{\"node\":\">= 10\"},\"files\":[\"*.js\",\"lib\",\"utils\"],\"homepage\":\"https://github.com/npm/make-fetch-happen#readme\",\"keywords\":[\"http\",\"request\",\"fetch\",\"mean girls\",\"caching\",\"cache\",\"subresource integrity\"],\"license\":\"ISC\",\"main\":\"index.js\",\"name\":\"make-fetch-happen\",\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/npm/make-fetch-happen.git\"},\"scripts\":{\"lint\":\"standard\",\"posttest\":\"npm run lint\",\"postversion\":\"npm publish\",\"prepublishOnly\":\"git push --follow-tags\",\"preversion\":\"npm t\",\"test\":\"tap test/*.js\"},\"version\":\"8.0.10\"}");
+module.exports = JSON.parse("{\"name\":\"make-fetch-happen\",\"version\":\"8.0.10\",\"description\":\"Opinionated, caching, retrying fetch client\",\"main\":\"index.js\",\"files\":[\"*.js\",\"lib\",\"utils\"],\"scripts\":{\"preversion\":\"npm t\",\"postversion\":\"npm publish\",\"prepublishOnly\":\"git push --follow-tags\",\"test\":\"tap test/*.js\",\"posttest\":\"npm run lint\",\"lint\":\"standard\"},\"repository\":\"https://github.com/npm/make-fetch-happen\",\"keywords\":[\"http\",\"request\",\"fetch\",\"mean girls\",\"caching\",\"cache\",\"subresource integrity\"],\"author\":{\"name\":\"Kat Marchán\",\"email\":\"kzm@zkat.tech\",\"twitter\":\"maybekatz\"},\"license\":\"ISC\",\"dependencies\":{\"agentkeepalive\":\"^4.1.0\",\"cacache\":\"^15.0.0\",\"http-cache-semantics\":\"^4.0.4\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"is-lambda\":\"^1.0.1\",\"lru-cache\":\"^6.0.0\",\"minipass\":\"^3.1.3\",\"minipass-collect\":\"^1.0.2\",\"minipass-fetch\":\"^1.3.0\",\"minipass-flush\":\"^1.0.5\",\"minipass-pipeline\":\"^1.2.2\",\"promise-retry\":\"^1.1.1\",\"socks-proxy-agent\":\"^5.0.0\",\"ssri\":\"^8.0.0\"},\"devDependencies\":{\"mkdirp\":\"^1.0.3\",\"nock\":\"^11.9.1\",\"npmlog\":\"^4.1.2\",\"require-inject\":\"^1.4.2\",\"rimraf\":\"^2.7.1\",\"safe-buffer\":\"^5.2.0\",\"standard\":\"^14.3.1\",\"standard-version\":\"^7.1.0\",\"tacks\":\"^1.2.6\",\"tap\":\"^14.10.6\"},\"engines\":{\"node\":\">= 10\"}}");
 
 /***/ }),
 
@@ -37562,7 +37585,7 @@ module.exports = {"i8":"1.3.2"};
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse("{\"_from\":\"npm-registry-fetch@8.1.5\",\"_id\":\"npm-registry-fetch@8.1.5\",\"_inBundle\":false,\"_integrity\":\"sha512-yZPNoJK9clx1jhSXU54kU6Aj1SV2p7mXUs1W/6OjQvek3wb1RrjDCrt4iY1+VX9eBQvvSGEpzNmYkRUaTL8rqg==\",\"_location\":\"/npm-registry-fetch\",\"_phantomChildren\":{},\"_requested\":{\"type\":\"version\",\"registry\":true,\"raw\":\"npm-registry-fetch@8.1.5\",\"name\":\"npm-registry-fetch\",\"escapedName\":\"npm-registry-fetch\",\"rawSpec\":\"8.1.5\",\"saveSpec\":null,\"fetchSpec\":\"8.1.5\"},\"_requiredBy\":[\"/\"],\"_resolved\":\"https://registry.npmjs.org/npm-registry-fetch/-/npm-registry-fetch-8.1.5.tgz\",\"_shasum\":\"33270c6722030c2d158a970d1327dcd9a149b5c5\",\"_spec\":\"npm-registry-fetch@8.1.5\",\"_where\":\"/Users/godban/Projects/publish\",\"author\":{\"name\":\"Kat Marchán\",\"email\":\"kzm@sykosomatic.org\"},\"bugs\":{\"url\":\"https://github.com/npm/registry-fetch/issues\"},\"bundleDependencies\":false,\"dependencies\":{\"@npmcli/ci-detect\":\"^1.0.0\",\"lru-cache\":\"^6.0.0\",\"make-fetch-happen\":\"^8.0.9\",\"minipass\":\"^3.1.3\",\"minipass-fetch\":\"^1.3.0\",\"minipass-json-stream\":\"^1.0.1\",\"minizlib\":\"^2.0.0\",\"npm-package-arg\":\"^8.0.0\"},\"deprecated\":false,\"description\":\"Fetch-based http client for use with npm registry APIs\",\"devDependencies\":{\"cacache\":\"^15.0.0\",\"mkdirp\":\"^0.5.1\",\"nock\":\"^11.7.0\",\"npmlog\":\"^4.1.2\",\"require-inject\":\"^1.4.4\",\"rimraf\":\"^2.6.2\",\"ssri\":\"^8.0.0\",\"standard\":\"^14.3.3\",\"standard-version\":\"^7.1.0\",\"tap\":\"^14.10.7\"},\"engines\":{\"node\":\">=10\"},\"files\":[\"*.js\",\"lib\"],\"homepage\":\"https://github.com/npm/registry-fetch#readme\",\"keywords\":[\"npm\",\"registry\",\"fetch\"],\"license\":\"ISC\",\"main\":\"index.js\",\"name\":\"npm-registry-fetch\",\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/npm/registry-fetch.git\"},\"scripts\":{\"postrelease\":\"npm publish\",\"posttest\":\"standard\",\"prepublishOnly\":\"git push --follow-tags\",\"prerelease\":\"npm t\",\"release\":\"standard-version -s\",\"test\":\"tap\"},\"tap\":{\"check-coverage\":true,\"test-ignore\":\"test[\\\\\\\\/](util|cache)[\\\\\\\\/]\"},\"version\":\"8.1.5\"}");
+module.exports = JSON.parse("{\"name\":\"npm-registry-fetch\",\"version\":\"8.1.5\",\"description\":\"Fetch-based http client for use with npm registry APIs\",\"main\":\"index.js\",\"files\":[\"*.js\",\"lib\"],\"scripts\":{\"postrelease\":\"npm publish\",\"posttest\":\"standard\",\"prepublishOnly\":\"git push --follow-tags\",\"prerelease\":\"npm t\",\"release\":\"standard-version -s\",\"test\":\"tap\"},\"repository\":\"https://github.com/npm/registry-fetch\",\"keywords\":[\"npm\",\"registry\",\"fetch\"],\"author\":{\"name\":\"Kat Marchán\",\"email\":\"kzm@sykosomatic.org\",\"twitter\":\"maybekatz\"},\"license\":\"ISC\",\"dependencies\":{\"@npmcli/ci-detect\":\"^1.0.0\",\"lru-cache\":\"^6.0.0\",\"make-fetch-happen\":\"^8.0.9\",\"minipass\":\"^3.1.3\",\"minipass-fetch\":\"^1.3.0\",\"minipass-json-stream\":\"^1.0.1\",\"minizlib\":\"^2.0.0\",\"npm-package-arg\":\"^8.0.0\"},\"devDependencies\":{\"cacache\":\"^15.0.0\",\"mkdirp\":\"^0.5.1\",\"nock\":\"^11.7.0\",\"npmlog\":\"^4.1.2\",\"require-inject\":\"^1.4.4\",\"rimraf\":\"^2.6.2\",\"ssri\":\"^8.0.0\",\"standard\":\"^14.3.3\",\"standard-version\":\"^7.1.0\",\"tap\":\"^14.10.7\"},\"tap\":{\"check-coverage\":true,\"test-ignore\":\"test[\\\\\\\\/](util|cache)[\\\\\\\\/]\"},\"engines\":{\"node\":\">=10\"}}");
 
 /***/ }),
 

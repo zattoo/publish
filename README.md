@@ -24,6 +24,12 @@ NPM token with publish permission.
 Optional. If not provided, publish will work against project root in single mode.
 Accepts glob pattern to work with multiple or other than root destinations.
 
+### `notes`
+
+`string` - path
+
+Optional. Path to Release notes file, it will take priority over changelog entries
+
 ## Usage Example
 
 ````yaml
