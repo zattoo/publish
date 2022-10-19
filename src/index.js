@@ -7,6 +7,8 @@ const github = require('@actions/github');
 const changelogParser = require('changelog-parser');
 const npmFetch = require('npm-registry-fetch');
 
+const globPromise = util.promisify(glob);
+
 const fetchNPMVersions = (packageName, token) => {
     return npmFetch.json(
         `http://registry.npmjs.org/${packageName}`,
@@ -24,12 +26,27 @@ const parseChangelog = util.promisify(changelogParser);
  */
 const getBody = async (changelogPath, notesPath) => {
     if (Boolean(notesPath)) {
-        try {
-            const releaseNotes = await fse.readFile(notesPath, 'utf-8');
+        core.info(`Notes Path found: ${notesPath}`);
 
-            return releaseNotes;
-        } catch {
-            // Couldn't find Release notes, fallback to Changelog
+        try {
+            const outputContent = [];
+            const filePaths = await globPromise(`${notesPath}*.md`);
+
+            core.debug(filePaths);
+
+            await Promise.all(filePaths.map(async (filePath) => {
+                const fileContent = await fse.readFile(filePath, {encoding: 'utf-8'});
+                if (fileContent) {
+                    outputContent.push(fileContent.trim());
+                }
+            }));
+
+            core.debug(outputContent);
+
+            return outputContent.join('\n');
+        } catch (e) {
+            core.info('Failed Finding Release Notes');
+            core.error(e);
         }
     }
 
