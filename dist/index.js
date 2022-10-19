@@ -37348,12 +37348,15 @@ const parseChangelog = util.promisify(changelogParser);
  */
 const getBody = async (changelogPath, notesPath) => {
     if (Boolean(notesPath)) {
+        core.info(`Notes Path found: ${notesPath}`);
+
         try {
             const releaseNotes = await fse.readFile(notesPath, 'utf-8');
 
+            core.info(releaseNotes);
             return releaseNotes;
         } catch {
-            // Couldn't find Release notes, fallback to Changelog
+            core.info('Failed Finding Release Notes');
         }
     }
 
