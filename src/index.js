@@ -30,7 +30,7 @@ const getBody = async (changelogPath, notesPath) => {
 
         try {
             const outputContent = [];
-            const filePaths = await globPromise(`${notesPath}*.${md}`);
+            const filePaths = await globPromise(`${notesPath}*.md`);
 
             core.info(filePaths);
 
