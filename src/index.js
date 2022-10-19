@@ -32,7 +32,7 @@ const getBody = async (changelogPath, notesPath) => {
             const outputContent = [];
             const filePaths = await globPromise(`${notesPath}*.md`);
 
-            core.info(filePaths);
+            core.debug(filePaths);
 
             await Promise.all(filePaths.map(async (filePath) => {
                 const fileContent = await fse.readFile(filePath, {encoding: 'utf-8'});
@@ -41,7 +41,7 @@ const getBody = async (changelogPath, notesPath) => {
                 }
             }));
 
-            core.info({outputContent});
+            core.debug(outputContent);
 
             return outputContent.join('\n');
         } catch (e) {
