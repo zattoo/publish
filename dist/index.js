@@ -37331,6 +37331,8 @@ const github = __webpack_require__(5438);
 const changelogParser = __webpack_require__(6352);
 const npmFetch = __webpack_require__(1331);
 
+const globPromise = util.promisify(glob);
+
 const fetchNPMVersions = (packageName, token) => {
     return npmFetch.json(
         `http://registry.npmjs.org/${packageName}`,
@@ -37351,10 +37353,19 @@ const getBody = async (changelogPath, notesPath) => {
         core.info(`Notes Path found: ${notesPath}`);
 
         try {
-            const releaseNotes = await fse.readFile(notesPath, 'utf-8');
+            const outputContent = [];
+            const filePaths = await globPromise(`${notesPath}*.${md}`);
 
-            core.info(releaseNotes);
-            return releaseNotes;
+            await Promise.all(filePaths.map(async (filePath) => {
+                const fileContent = await fse.readFile(filePath, {encoding: 'utf-8'});
+                if (fileContent) {
+                    outputContent.push(fileContent.trim());
+                }
+            }));
+
+            core.info({outputContent});
+
+            return outputContent.join('\n');
         } catch {
             core.info('Failed Finding Release Notes');
         }
