@@ -32,6 +32,8 @@ const getBody = async (changelogPath, notesPath) => {
             const outputContent = [];
             const filePaths = await globPromise(`${notesPath}*.${md}`);
 
+            core.info(filePaths);
+
             await Promise.all(filePaths.map(async (filePath) => {
                 const fileContent = await fse.readFile(filePath, {encoding: 'utf-8'});
                 if (fileContent) {
@@ -42,8 +44,9 @@ const getBody = async (changelogPath, notesPath) => {
             core.info({outputContent});
 
             return outputContent.join('\n');
-        } catch {
+        } catch (e) {
             core.info('Failed Finding Release Notes');
+            core.error(e);
         }
     }
 
