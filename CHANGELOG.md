@@ -5,7 +5,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-### Infrastucture
+### Infrastructure
 - Updated dependencies
 - Upgraded from node `12` to `20`
 
