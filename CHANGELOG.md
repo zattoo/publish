@@ -5,8 +5,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-Updated dependencies
-Upgraded from node `12` to `20`
+### Infrastucture
+- Updated dependencies
+- Upgraded from node `12` to `20`
 
 ## 1.0.1 - 06.01.2021
 
