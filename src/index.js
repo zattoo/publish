@@ -7,6 +7,10 @@ const github = require('@actions/github');
 const changelogParser = require('changelog-parser');
 const npmFetch = require('npm-registry-fetch');
 
+/**
+ * @param {string} packageName 
+ * @param {string} token 
+ */
 const fetchNPMVersions = (packageName, token) => {
     return npmFetch.json(
         `http://registry.npmjs.org/${packageName}`,
@@ -114,7 +118,7 @@ async function run() {
             }
         }
     } catch (error) {
-        core.setFailed(error.message);
+        core.setFailed(error instanceof Error ? error.message : 'Unknown error');
     }
 }
 
