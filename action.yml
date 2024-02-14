@@ -12,7 +12,7 @@ inputs:
     description: 'Optional. Glob pattern. If not provided, publish will work against project root in single mode. Accepts glob pattern to work with multiple or other than root destinations.'
     required: false
 runs:
-  using: 'node12'
+  using: 'node20'
   main: 'dist/index.js'
 branding:
   icon: truck
