@@ -7,8 +7,6 @@ const github = require('@actions/github');
 const changelogParser = require('changelog-parser');
 const npmFetch = require('npm-registry-fetch');
 
-const globPromise = util.promisify(glob);
-
 /**
  * @param {string} packageName 
  * @param {string} token 
@@ -21,7 +19,6 @@ const fetchNPMVersions = (packageName, token) => {
 };
 
 const parseChangelog = util.promisify(changelogParser);
-
 
 /**
  * @param {string} changelogPath
