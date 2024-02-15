@@ -5,7 +5,9 @@
     "main": "src/index.js",
     "scripts": {
         "build": "ncc build src/index.js -o dist --source-map --license licenses.txt",
-        "test": "tsc"
+        "lint": "tsc",
+        "statics": "node --test ",
+        "test": "npm run lint && npm run statics"
     },
     "repository": {
         "type": "git",
@@ -37,7 +39,7 @@
         "@types/changelog-parser": "2.8.4",
         "@types/fs-extra": "11.0.4",
         "@types/glob": "8.1.0",
-        "@types/node": "20.11.17",
+        "@types/node": "20.11.18",
         "@types/npm-registry-fetch": "8.0.7",
         "typescript": "5.3.3"
     }
