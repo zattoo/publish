@@ -7,6 +7,8 @@ const github = require('@actions/github');
 const changelogParser = require('changelog-parser');
 const npmFetch = require('npm-registry-fetch');
 
+const globPromise = util.promisify(glob);
+
 /**
  * @param {string} packageName 
  * @param {string} token 
@@ -20,11 +22,49 @@ const fetchNPMVersions = (packageName, token) => {
 
 const parseChangelog = util.promisify(changelogParser);
 
+
+/**
+ * @param {string} changelogPath
+ * @param {string} [notesPath]
+ * @returns {Promise<string>}
+ */
+const getBody = async (changelogPath, notesPath) => {
+    if (Boolean(notesPath)) {
+        core.info(`Notes Path found: ${notesPath}`);
+
+        try {
+            const outputContent = [];
+            const filePaths = await globPromise(`${notesPath}/*.md`);
+
+            core.debug(filePaths);
+
+            await Promise.all(filePaths.map(async (filePath) => {
+                const fileContent = await fse.readFile(filePath, {encoding: 'utf-8'});
+                if (fileContent) {
+                    outputContent.push(fileContent.trim());
+                }
+            }));
+
+            core.debug(outputContent);
+
+            return outputContent.join('\n');
+        } catch (e) {
+            core.info('Failed Finding Release Notes');
+            core.error(e);
+        }
+    }
+
+    const changelog = await parseChangelog(changelogPath);
+    return changelog.versions[0].body;
+};
+
 async function run() {
     try {
         const github_token = core.getInput('github_token', {required: true});
         const npm_token = core.getInput('npm_token');
         const sources = core.getInput('sources');
+        const notesPath = core.getInput('notes');
+
         const octokit = github.getOctokit(github_token);
 
         const isSingle = !sources;
@@ -81,8 +121,7 @@ async function run() {
             const canRelease = !tagResponse.data.tag_name;
 
             if (canRelease) {
-                const changelog = await parseChangelog(`${path}/CHANGELOG.md`);
-                const entry = changelog.versions[0];
+                const body = await getBody(`${path}/CHANGELOG.md`, notesPath);
 
                 await octokit.request('POST /repos/{owner}/{repo}/releases', {
                     owner,
@@ -90,7 +129,7 @@ async function run() {
                     target_commitish: github.context.ref.split('refs/heads/')[1],
                     tag_name: tag,
                     name: tag,
-                    body: entry.body,
+                    body,
                     prerelease: !!version.match(/alpha|beta|rc/),
                 });
 
