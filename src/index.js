@@ -1,6 +1,6 @@
 const util = require('util');
 const fse = require('fs-extra');
-const glob = require('glob');
+const {glob} = require('glob');
 const core = require('@actions/core');
 const exec = require('@actions/exec');
 const github = require('@actions/github');
@@ -31,7 +31,7 @@ const getBody = async (changelogPath, notesPath) => {
 
         try {
             const outputContent = [];
-            const filePaths = await globPromise(`${notesPath}/*.md`);
+            const filePaths = await glob(`${notesPath}/*.md`);
 
             core.debug(filePaths);
 
