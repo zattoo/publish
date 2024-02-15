@@ -6,7 +6,7 @@
     "scripts": {
         "build": "ncc build src/index.js -o dist --source-map --license licenses.txt",
         "lint": "tsc",
-        "statics": "node --test ",
+        "statics": "node --test",
         "test": "npm run lint && npm run statics"
     },
     "repository": {
