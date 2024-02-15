@@ -9,13 +9,15 @@ const npmFetch = require('npm-registry-fetch');
 
 /**
  * @param {string} packageName 
- * @param {string} token 
+ * @param {string} token
  */
-const fetchNPMVersions = (packageName, token) => {
-    return npmFetch.json(
+const fetchNPMVersions = async (packageName, token) => {
+    const versions = /** @type {Record<string, Version>} */(await npmFetch.json(
         `http://registry.npmjs.org/${packageName}`,
         {token},
-    ).then(({versions}) => Object.values(versions).map(({version}) => version));
+    ));
+
+    return Object.values(versions).map(({version}) => version);
 };
 
 const parseChangelog = util.promisify(changelogParser);
@@ -30,10 +32,11 @@ const getBody = async (changelogPath, notesPath) => {
         core.info(`Notes Path found: ${notesPath}`);
 
         try {
+            /** @type {string[]} */
             const outputContent = [];
             const filePaths = await glob(`${notesPath}/*.md`);
 
-            core.debug(filePaths);
+            core.debug(JSON.stringify(filePaths));
 
             await Promise.all(filePaths.map(async (filePath) => {
                 const fileContent = await fse.readFile(filePath, {encoding: 'utf-8'});
@@ -42,12 +45,12 @@ const getBody = async (changelogPath, notesPath) => {
                 }
             }));
 
-            core.debug(outputContent);
+            core.debug(JSON.stringify(outputContent));
 
             return outputContent.join('\n');
         } catch (e) {
             core.info('Failed Finding Release Notes');
-            core.error(e);
+            core.error(e instanceof Error ? e.message : 'Unknown error');
         }
     }
 
@@ -77,7 +80,7 @@ async function run() {
 
             const pathToPackage = `${path}/package.json`;
 
-            const pkg = await fse.readJSON(pathToPackage);
+            const pkg = /** @type {Package} */(await fse.readJSON(pathToPackage));
 
             if (!pkg) {
                 throw Error(`${pathToPackage} is missing`);
@@ -115,6 +118,7 @@ async function run() {
             } catch {
             } // tag not found
 
+            // @ts-expect-error tag_name is not part of the initialization object
             const canRelease = !tagResponse.data.tag_name;
 
             if (canRelease) {
@@ -159,3 +163,14 @@ async function run() {
 }
 
 run();
+
+/**
+ * @typedef {object} Version
+ * @prop {string} version
+ */
+
+/**
+ * @typedef {object} Package
+ * @prop {string} name
+ * @prop {string} version
+ */

@@ -4,7 +4,8 @@
     "description": "GitHub Action to publish projects and packages",
     "main": "src/index.js",
     "scripts": {
-        "build": "ncc build src/index.js -o dist --source-map --license licenses.txt"
+        "build": "ncc build src/index.js -o dist --source-map --license licenses.txt",
+        "test": "tsc"
     },
     "repository": {
         "type": "git",
@@ -37,6 +38,7 @@
         "@types/fs-extra": "11.0.4",
         "@types/glob": "8.1.0",
         "@types/node": "20.11.17",
-        "@types/npm-registry-fetch": "8.0.7"
+        "@types/npm-registry-fetch": "8.0.7",
+        "typescript": "5.3.3"
     }
 }
