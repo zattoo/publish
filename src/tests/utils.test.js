@@ -2,7 +2,7 @@ const {
     getBody, 
     fetchNPMVersions
 } = require  ('../utils.js');
-const { test } = require  ("node:test");
+const { test } = require  ('node:test');
 const assert = require  ('node:assert/strict');
 
 const token = '5047ed13-698a-494c-9c4c-8fa26ecb66f5';
