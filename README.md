@@ -38,7 +38,7 @@ jobs:
   deploy:
     name: Package
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # your stuff
       - uses: zattoo/publish@v1
         with:
@@ -46,4 +46,3 @@ jobs:
           npm_token: ${{secrets.NPM_TOKEN}}
           sources: 'packages/*'
 ````
-

@@ -1,58 +1,13 @@
-const util = require('util');
 const fse = require('fs-extra');
-const glob = require('glob');
+const {glob} = require('glob');
 const core = require('@actions/core');
 const exec = require('@actions/exec');
 const github = require('@actions/github');
-const changelogParser = require('changelog-parser');
-const npmFetch = require('npm-registry-fetch');
 
-const globPromise = util.promisify(glob);
-
-const fetchNPMVersions = (packageName, token) => {
-    return npmFetch.json(
-        `http://registry.npmjs.org/${packageName}`,
-        {token},
-    ).then(({versions}) => Object.values(versions).map(({version}) => version));
-};
-
-const parseChangelog = util.promisify(changelogParser);
-
-
-/**
- * @param {string} changelogPath
- * @param {string} [notesPath]
- * @returns {Promise<string>}
- */
-const getBody = async (changelogPath, notesPath) => {
-    if (Boolean(notesPath)) {
-        core.info(`Notes Path found: ${notesPath}`);
-
-        try {
-            const outputContent = [];
-            const filePaths = await globPromise(`${notesPath}/*.md`);
-
-            core.debug(filePaths);
-
-            await Promise.all(filePaths.map(async (filePath) => {
-                const fileContent = await fse.readFile(filePath, {encoding: 'utf-8'});
-                if (fileContent) {
-                    outputContent.push(fileContent.trim());
-                }
-            }));
-
-            core.debug(outputContent);
-
-            return outputContent.join('\n');
-        } catch (e) {
-            core.info('Failed Finding Release Notes');
-            core.error(e);
-        }
-    }
-
-    const changelog = await parseChangelog(changelogPath);
-    return changelog.versions[0].body;
-};
+const {
+    getBody,
+    fetchNPMVersions
+} = require('./utils');
 
 async function run() {
     try {
@@ -76,7 +31,7 @@ async function run() {
 
             const pathToPackage = `${path}/package.json`;
 
-            const pkg = await fse.readJSON(pathToPackage);
+            const pkg = /** @type {Package} */(await fse.readJSON(pathToPackage));
 
             if (!pkg) {
                 throw Error(`${pathToPackage} is missing`);
@@ -114,6 +69,7 @@ async function run() {
             } catch {
             } // tag not found
 
+            // @ts-expect-error tag_name is not part of the initialization object
             const canRelease = !tagResponse.data.tag_name;
 
             if (canRelease) {
@@ -153,8 +109,14 @@ async function run() {
             }
         }
     } catch (error) {
-        core.setFailed(error.message);
+        core.setFailed(error instanceof Error ? error.message : 'Unknown error');
     }
 }
 
 run();
+
+/**
+ * @typedef {object} Package
+ * @prop {string} name
+ * @prop {string} version
+ */

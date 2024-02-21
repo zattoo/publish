@@ -15,7 +15,7 @@ inputs:
     description: 'Optional. Path to Release notes file, it will take priority over changelog entries'
     required: false
 runs:
-  using: 'node12'
+  using: 'node20'
   main: 'dist/index.js'
 branding:
   icon: truck
