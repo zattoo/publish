@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Fixed Release notes path
 
+## 1.1.2 - 02.01.2023
+
+Fixed Release notes path
+
 ## 1.1.1 - 19.10.2022
 
 Fixed issues with fetching the Release Notes
