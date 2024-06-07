@@ -1,5 +1,5 @@
 {
-    "name": "app",
+    "name": "two",
     "version": "1.0.0",
     "description": "GitHub Action to publish projects and packages",
     "main": "src/index.js",

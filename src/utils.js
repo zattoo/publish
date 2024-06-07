@@ -2,22 +2,27 @@ const util = require('node:util');
 const {glob} = require('glob');
 const fse = require('fs-extra');
 const core = require('@actions/core');
-const npmFetch = require('npm-registry-fetch');
 const changelogParser = require('changelog-parser');
 
 const parseChangelog = util.promisify(changelogParser);
 
 /**
- * @param {string} packageName 
+ * @param {string} packageName
  * @param {string} token
  */
 const fetchNPMVersions = async (packageName, token) => {
-    const {versions} = /** @type {Package} */(await npmFetch.json(
-        `http://registry.npmjs.org/${packageName}`,
-        {token},
-    ));
+    const url = `https://registry.npmjs.org/${packageName}`;
+    const headers = {'Authorization': `Bearer ${token}`};
 
-    return Object.values(versions).map(({version}) => version);
+    try {
+        const response = await fetch(url, {headers});
+        const data = /** @type {Package} */ (await response.json());
+
+        return Object.values(data.versions).map(({ version }) => version);
+    } catch (error) {
+        console.error(`Failed to fetch NPM versions for ${packageName}:`, error);
+        throw error;
+    }
 };
 
 /**
@@ -63,10 +68,10 @@ module.exports = {
 
 /**
  * @typedef {object} VersionObj
- * @prop {string} version 
+ * @prop {string} version
  */
 
 /**
  * @typedef {object} Package
- * @prop {Record<string, VersionObj>} versions  
+ * @prop {Record<string, VersionObj>} versions
  */
