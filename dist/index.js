@@ -79062,9 +79062,7 @@ async function run() {
                 });
             } catch {
                 console.log('Tag not found');
-            } // tag not found
-
-            console.log('tag response', tagResponse);
+            } // tag not found;
 
             // @ts-expect-error tag_name is not part of the initialization object
             const canRelease = !tagResponse.data.tag_name;
@@ -79092,8 +79090,13 @@ async function run() {
 
                 try {
                     const npmVersions = await fetchNPMVersions(name, npm_token);
+
+                    console.log('npmVersions', npmVersions);
+
                     canPublish = !npmVersions.includes(version); // new version
-                } catch {
+                } catch (error) {
+                    console.log(error);
+
                     canPublish = true; // new package
                 }
 
