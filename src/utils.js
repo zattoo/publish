@@ -15,7 +15,7 @@ const fetchNPMVersions = async (packageName, token) => {
     console.log('packageName', packageName);
 
     const response = /** @type {Package} */(await npmFetch.json(
-        `//registry.npmjs.org/@zattoo/zapi`,
+        `https://registry.npmjs.org/@zattoo/eslint-config`,
         {token},
     ));
 
