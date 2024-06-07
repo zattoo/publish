@@ -13,7 +13,7 @@ const parseChangelog = util.promisify(changelogParser);
  */
 const fetchNPMVersions = async (packageName, token) => {
     const response = /** @type {Package} */(await npmFetch.json(
-        `https://registry.npmjs.org/@zattoo/zapi`,
+        `https://registry.npmjs.org/@zattoo/time`,
         {token},
     ));
 
