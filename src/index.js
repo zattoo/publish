@@ -67,7 +67,10 @@ async function run() {
                     tag,
                 });
             } catch {
+                console.log('Tag not found');
             } // tag not found
+
+            console.log('tag response', tagResponse);
 
             // @ts-expect-error tag_name is not part of the initialization object
             const canRelease = !tagResponse.data.tag_name;
