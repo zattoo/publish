@@ -61331,12 +61331,14 @@ const parseChangelog = util.promisify(changelogParser);
 const fetchNPMVersions = async (packageName, token) => {
     console.log('packageName', packageName);
 
-    const {versions} = /** @type {Package} */(await npmFetch.json(
+    const response = /** @type {Package} */(await npmFetch.json(
         `http://registry.npmjs.org/${packageName}`,
         {token},
     ));
 
-    return Object.values(versions).map(({version}) => version);
+    console.log('response', response);
+
+    return Object.values(response.versions).map(({version}) => version);
 };
 
 /**
@@ -79573,7 +79575,7 @@ async function run() {
                 }
 
                 if (canPublish) {
-                    await exec.exec(`npm publish ${path}`);
+                    // await exec.exec(`npm publish ${path}`);
                     core.info(`Published to npm registry: https://www.npmjs.com/package/${name}`);
                 } else {
                     core.info('Package is already exist. Nothing to do here');

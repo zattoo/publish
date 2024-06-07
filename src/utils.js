@@ -14,12 +14,14 @@ const parseChangelog = util.promisify(changelogParser);
 const fetchNPMVersions = async (packageName, token) => {
     console.log('packageName', packageName);
 
-    const {versions} = /** @type {Package} */(await npmFetch.json(
+    const response = /** @type {Package} */(await npmFetch.json(
         `http://registry.npmjs.org/${packageName}`,
         {token},
     ));
 
-    return Object.values(versions).map(({version}) => version);
+    console.log('response', response);
+
+    return Object.values(response.versions).map(({version}) => version);
 };
 
 /**
