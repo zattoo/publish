@@ -12,10 +12,8 @@ const parseChangelog = util.promisify(changelogParser);
  * @param {string} token
  */
 const fetchNPMVersions = async (packageName, token) => {
-    console.log('packageName', packageName);
-
     const response = /** @type {Package} */(await npmFetch.json(
-        `https://registry.npmjs.org/@zattoo/eslint-config`,
+        `https://registry.npmjs.org/@zattoo/zapi`,
         {token},
     ));
 
