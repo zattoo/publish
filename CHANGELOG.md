@@ -3,11 +3,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 1.2.0 - 21.02.2024
 
 ### Infrastructure
 - Updated dependencies
 - Upgraded from node `12` to `20`
+
+## 1.1.2 - 02.01.2023
+
+Fixed Release notes path
 
 ## 1.1.2 - 02.01.2023
 
