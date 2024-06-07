@@ -15,7 +15,7 @@ const fetchNPMVersions = async (packageName, token) => {
     console.log('packageName', packageName);
 
     const response = /** @type {Package} */(await npmFetch.json(
-        `http://registry.npmjs.org/${packageName}`,
+        `//registry.npmjs.org/@zattoo/zapi`,
         {token},
     ));
 
