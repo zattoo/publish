@@ -2,7 +2,6 @@ const util = require('node:util');
 const {glob} = require('glob');
 const fse = require('fs-extra');
 const core = require('@actions/core');
-const npmFetch = require('npm-registry-fetch');
 const changelogParser = require('changelog-parser');
 
 const parseChangelog = util.promisify(changelogParser);
