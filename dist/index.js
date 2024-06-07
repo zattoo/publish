@@ -4740,6 +4740,354 @@ module.exports = withTempDir
 
 /***/ }),
 
+/***/ 8217:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const matchers = __nccwpck_require__(5131)
+const { redactUrlPassword } = __nccwpck_require__(766)
+
+const REPLACE = '***'
+
+const redact = (value) => {
+  if (typeof value !== 'string' || !value) {
+    return value
+  }
+  return redactUrlPassword(value, REPLACE)
+    .replace(matchers.NPM_SECRET.pattern, `npm_${REPLACE}`)
+    .replace(matchers.UUID.pattern, REPLACE)
+}
+
+// split on \s|= similar to how nopt parses options
+const splitAndRedact = (str) => {
+  // stateful regex, don't move out of this scope
+  const splitChars = /[\s=]/g
+
+  let match = null
+  let result = ''
+  let index = 0
+  while (match = splitChars.exec(str)) {
+    result += redact(str.slice(index, match.index)) + match[0]
+    index = splitChars.lastIndex
+  }
+
+  return result + redact(str.slice(index))
+}
+
+// replaces auth info in an array of arguments or in a strings
+const redactLog = (arg) => {
+  if (typeof arg === 'string') {
+    return splitAndRedact(arg)
+  } else if (Array.isArray(arg)) {
+    return arg.map((a) => typeof a === 'string' ? splitAndRedact(a) : a)
+  }
+  return arg
+}
+
+module.exports = {
+  redact,
+  redactLog,
+}
+
+
+/***/ }),
+
+/***/ 5131:
+/***/ ((module) => {
+
+const TYPE_REGEX = 'regex'
+const TYPE_URL = 'url'
+const TYPE_PATH = 'path'
+
+const NPM_SECRET = {
+  type: TYPE_REGEX,
+  pattern: /\b(npms?_)[a-zA-Z0-9]{36,48}\b/gi,
+  replacement: `[REDACTED_NPM_SECRET]`,
+}
+
+const AUTH_HEADER = {
+  type: TYPE_REGEX,
+  pattern: /\b(Basic\s+|Bearer\s+)[\w+=\-.]+\b/gi,
+  replacement: `[REDACTED_AUTH_HEADER]`,
+}
+
+const JSON_WEB_TOKEN = {
+  type: TYPE_REGEX,
+  pattern: /\b[A-Za-z0-9-_]{10,}(?!\.\d+\.)\.[A-Za-z0-9-_]{3,}\.[A-Za-z0-9-_]{20,}\b/gi,
+  replacement: `[REDACTED_JSON_WEB_TOKEN]`,
+}
+
+const UUID = {
+  type: TYPE_REGEX,
+  pattern: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+  replacement: `[REDACTED_UUID]`,
+}
+
+const URL_MATCHER = {
+  type: TYPE_REGEX,
+  pattern: /(?:https?|ftp):\/\/[^\s/"$.?#].[^\s"]*/gi,
+  replacement: '[REDACTED_URL]',
+}
+
+const DEEP_HEADER_AUTHORIZATION = {
+  type: TYPE_PATH,
+  predicate: ({ path }) => path.endsWith('.headers.authorization'),
+  replacement: '[REDACTED_HEADER_AUTHORIZATION]',
+}
+
+const DEEP_HEADER_SET_COOKIE = {
+  type: TYPE_PATH,
+  predicate: ({ path }) => path.endsWith('.headers.set-cookie'),
+  replacement: '[REDACTED_HEADER_SET_COOKIE]',
+}
+
+const REWRITE_REQUEST = {
+  type: TYPE_PATH,
+  predicate: ({ path }) => path.endsWith('.request'),
+  replacement: (input) => ({
+    method: input?.method,
+    path: input?.path,
+    headers: input?.headers,
+    url: input?.url,
+  }),
+}
+
+const REWRITE_RESPONSE = {
+  type: TYPE_PATH,
+  predicate: ({ path }) => path.endsWith('.response'),
+  replacement: (input) => ({
+    data: input?.data,
+    status: input?.status,
+    headers: input?.headers,
+  }),
+}
+
+module.exports = {
+  TYPE_REGEX,
+  TYPE_URL,
+  TYPE_PATH,
+  NPM_SECRET,
+  AUTH_HEADER,
+  JSON_WEB_TOKEN,
+  UUID,
+  URL_MATCHER,
+  DEEP_HEADER_AUTHORIZATION,
+  DEEP_HEADER_SET_COOKIE,
+  REWRITE_REQUEST,
+  REWRITE_RESPONSE,
+}
+
+
+/***/ }),
+
+/***/ 766:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const {
+  URL_MATCHER,
+  TYPE_URL,
+  TYPE_REGEX,
+  TYPE_PATH,
+} = __nccwpck_require__(5131)
+
+/**
+ * creates a string of asterisks,
+ * this forces a minimum asterisk for security purposes
+ */
+const asterisk = (length = 0) => {
+  length = typeof length === 'string' ? length.length : length
+  if (length < 8) {
+    return '*'.repeat(8)
+  }
+  return '*'.repeat(length)
+}
+
+/**
+ * escapes all special regex chars
+ * @see https://stackoverflow.com/a/9310752
+ * @see https://github.com/tc39/proposal-regex-escaping
+ */
+const escapeRegExp = (text) => {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, `\\$&`)
+}
+
+/**
+ * provieds a regex "or" of the url versions of a string
+ */
+const urlEncodeRegexGroup = (value) => {
+  const decoded = decodeURIComponent(value)
+  const encoded = encodeURIComponent(value)
+  const union = [...new Set([encoded, decoded, value])].map(escapeRegExp).join('|')
+  return union
+}
+
+/**
+ * a tagged template literal that returns a regex ensures all variables are excaped
+ */
+const urlEncodeRegexTag = (strings, ...values) => {
+  let pattern = ''
+  for (let i = 0; i < values.length; i++) {
+    pattern += strings[i] + `(${urlEncodeRegexGroup(values[i])})`
+  }
+  pattern += strings[strings.length - 1]
+  return new RegExp(pattern)
+}
+
+/**
+ * creates a matcher for redacting url hostname
+ */
+const redactUrlHostnameMatcher = ({ hostname, replacement } = {}) => ({
+  type: TYPE_URL,
+  predicate: ({ url }) => url.hostname === hostname,
+  pattern: ({ url }) => {
+    return urlEncodeRegexTag`(^${url.protocol}//${url.username}:.+@)?${url.hostname}`
+  },
+  replacement: `$1${replacement || asterisk()}`,
+})
+
+/**
+ * creates a matcher for redacting url search / query parameter values
+ */
+const redactUrlSearchParamsMatcher = ({ param, replacement } = {}) => ({
+  type: TYPE_URL,
+  predicate: ({ url }) => url.searchParams.has(param),
+  pattern: ({ url }) => urlEncodeRegexTag`(${param}=)${url.searchParams.get(param)}`,
+  replacement: `$1${replacement || asterisk()}`,
+})
+
+/** creates a matcher for redacting the url password */
+const redactUrlPasswordMatcher = ({ replacement } = {}) => ({
+  type: TYPE_URL,
+  predicate: ({ url }) => url.password,
+  pattern: ({ url }) => urlEncodeRegexTag`(^${url.protocol}//${url.username}:)${url.password}`,
+  replacement: `$1${replacement || asterisk()}`,
+})
+
+const redactUrlReplacement = (...matchers) => (subValue) => {
+  try {
+    const url = new URL(subValue)
+    return redactMatchers(...matchers)(subValue, { url })
+  } catch (err) {
+    return subValue
+  }
+}
+
+/**
+ * creates a matcher / submatcher for urls, this function allows you to first
+ * collect all urls within a larger string and then pass those urls to a
+ * submatcher
+ *
+ * @example
+ * console.log("this will first match all urls, then pass those urls to the password patcher")
+ * redactMatchers(redactUrlMatcher(redactUrlPasswordMatcher()))
+ *
+ * @example
+ * console.log(
+ *   "this will assume you are passing in a string that is a url, and will redact the password"
+ * )
+ * redactMatchers(redactUrlPasswordMatcher())
+ *
+ */
+const redactUrlMatcher = (...matchers) => {
+  return {
+    ...URL_MATCHER,
+    replacement: redactUrlReplacement(...matchers),
+  }
+}
+
+const matcherFunctions = {
+  [TYPE_REGEX]: (matcher) => (value) => {
+    if (typeof value === 'string') {
+      value = value.replace(matcher.pattern, matcher.replacement)
+    }
+    return value
+  },
+  [TYPE_URL]: (matcher) => (value, ctx) => {
+    if (typeof value === 'string') {
+      try {
+        const url = ctx?.url || new URL(value)
+        const { predicate, pattern } = matcher
+        const predicateValue = predicate({ url })
+        if (predicateValue) {
+          value = value.replace(pattern({ url }), matcher.replacement)
+        }
+      } catch (_e) {
+        return value
+      }
+    }
+    return value
+  },
+  [TYPE_PATH]: (matcher) => (value, ctx) => {
+    const rawPath = ctx?.path
+    const path = rawPath.join('.').toLowerCase()
+    const { predicate, replacement } = matcher
+    const replace = typeof replacement === 'function' ? replacement : () => replacement
+    const shouldRun = predicate({ rawPath, path })
+    if (shouldRun) {
+      value = replace(value, { rawPath, path })
+    }
+    return value
+  },
+}
+
+/** converts a matcher to a function */
+const redactMatcher = (matcher) => {
+  return matcherFunctions[matcher.type](matcher)
+}
+
+/** converts a series of matchers to a function */
+const redactMatchers = (...matchers) => (value, ctx) => {
+  const flatMatchers = matchers.flat()
+  return flatMatchers.reduce((result, matcher) => {
+    const fn = (typeof matcher === 'function') ? matcher : redactMatcher(matcher)
+    return fn(result, ctx)
+  }, value)
+}
+
+/**
+ * replacement handler, keeping $1 (if it exists) and replacing the
+ * rest of the string with asterisks, maintaining string length
+ */
+const redactDynamicReplacement = () => (value, start) => {
+  if (typeof start === 'number') {
+    return asterisk(value)
+  }
+  return start + asterisk(value.substring(start.length).length)
+}
+
+/**
+ * replacement handler, keeping $1 (if it exists) and replacing the
+ * rest of the string with a fixed number of asterisks
+ */
+const redactFixedReplacement = (length) => (_value, start) => {
+  if (typeof start === 'number') {
+    return asterisk(length)
+  }
+  return start + asterisk(length)
+}
+
+const redactUrlPassword = (value, replacement) => {
+  return redactMatchers(redactUrlPasswordMatcher({ replacement }))(value)
+}
+
+module.exports = {
+  asterisk,
+  escapeRegExp,
+  urlEncodeRegexGroup,
+  urlEncodeRegexTag,
+  redactUrlHostnameMatcher,
+  redactUrlSearchParamsMatcher,
+  redactUrlPasswordMatcher,
+  redactUrlMatcher,
+  redactUrlReplacement,
+  redactDynamicReplacement,
+  redactFixedReplacement,
+  redactMatchers,
+  redactUrlPassword,
+}
+
+
+/***/ }),
+
 /***/ 334:
 /***/ ((module) => {
 
@@ -29685,8 +30033,8 @@ module.exports = getAuth
 const errors = __nccwpck_require__(3774)
 const { Response } = __nccwpck_require__(8998)
 const defaultOpts = __nccwpck_require__(305)
-const log = __nccwpck_require__(6528)
-const cleanUrl = __nccwpck_require__(8954)
+const { log } = __nccwpck_require__(3580)
+const { redact: cleanUrl } = __nccwpck_require__(8217)
 
 /* eslint-disable-next-line max-len */
 const moreInfoUrl = 'https://github.com/npm/cli/wiki/No-auth-for-URI,-but-auth-present-for-scoped-registry'
@@ -29784,40 +30132,6 @@ function checkErrors (method, res, startTime, opts) {
 
 /***/ }),
 
-/***/ 8954:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const { URL } = __nccwpck_require__(7310)
-
-const replace = '***'
-const tokenRegex = /\bnpm_[a-zA-Z0-9]{36}\b/g
-const guidRegex = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/g
-
-const cleanUrl = (str) => {
-  if (typeof str !== 'string' || !str) {
-    return str
-  }
-
-  try {
-    const url = new URL(str)
-    if (url.password) {
-      url.password = replace
-      str = url.toString()
-    }
-  } catch {
-    // ignore errors
-  }
-
-  return str
-    .replace(tokenRegex, `npm_${replace}`)
-    .replace(guidRegex, `npm_${replace}`)
-}
-
-module.exports = cleanUrl
-
-
-/***/ }),
-
 /***/ 305:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -29850,11 +30164,11 @@ module.exports = {
 "use strict";
 
 
-const url = __nccwpck_require__(7310)
+const { URL } = __nccwpck_require__(1041)
 
 function packageName (href) {
   try {
-    let basePath = new url.URL(href).pathname.slice(1)
+    let basePath = new URL(href).pathname.slice(1)
     if (!basePath.match(/^-/)) {
       basePath = basePath.split('/')
       var index = basePath.indexOf('_rewrite')
@@ -29865,7 +30179,7 @@ function packageName (href) {
       }
       return decodeURIComponent(basePath[index])
     }
-  } catch (_) {
+  } catch {
     // this is ok
   }
 }
@@ -29874,16 +30188,16 @@ class HttpErrorBase extends Error {
   constructor (method, res, body, spec) {
     super()
     this.name = this.constructor.name
-    this.headers = res.headers.raw()
+    this.headers = typeof res.headers?.raw === 'function' ? res.headers.raw() : res.headers
     this.statusCode = res.status
     this.code = `E${res.status}`
     this.method = method
     this.uri = res.url
     this.body = body
     this.pkgid = spec ? spec.toString() : packageName(res.url)
+    Error.captureStackTrace(this, this.constructor)
   }
 }
-module.exports.HttpErrorBase = HttpErrorBase
 
 class HttpErrorGeneral extends HttpErrorBase {
   constructor (method, res, body, spec) {
@@ -29895,39 +30209,39 @@ class HttpErrorGeneral extends HttpErrorBase {
     }${
       (body && body.error) ? ' - ' + body.error : ''
     }`
-    Error.captureStackTrace(this, HttpErrorGeneral)
   }
 }
-module.exports.HttpErrorGeneral = HttpErrorGeneral
 
 class HttpErrorAuthOTP extends HttpErrorBase {
   constructor (method, res, body, spec) {
     super(method, res, body, spec)
     this.message = 'OTP required for authentication'
     this.code = 'EOTP'
-    Error.captureStackTrace(this, HttpErrorAuthOTP)
   }
 }
-module.exports.HttpErrorAuthOTP = HttpErrorAuthOTP
 
 class HttpErrorAuthIPAddress extends HttpErrorBase {
   constructor (method, res, body, spec) {
     super(method, res, body, spec)
     this.message = 'Login is not allowed from your IP address'
     this.code = 'EAUTHIP'
-    Error.captureStackTrace(this, HttpErrorAuthIPAddress)
   }
 }
-module.exports.HttpErrorAuthIPAddress = HttpErrorAuthIPAddress
 
 class HttpErrorAuthUnknown extends HttpErrorBase {
   constructor (method, res, body, spec) {
     super(method, res, body, spec)
     this.message = 'Unable to authenticate, need: ' + res.headers.get('www-authenticate')
-    Error.captureStackTrace(this, HttpErrorAuthUnknown)
   }
 }
-module.exports.HttpErrorAuthUnknown = HttpErrorAuthUnknown
+
+module.exports = {
+  HttpErrorBase,
+  HttpErrorGeneral,
+  HttpErrorAuthOTP,
+  HttpErrorAuthIPAddress,
+  HttpErrorAuthUnknown,
+}
 
 
 /***/ }),
@@ -30184,7 +30498,165 @@ function getHeaders (uri, auth, opts) {
   return headers
 }
 
-module.exports.cleanUrl = __nccwpck_require__(8954)
+
+/***/ }),
+
+/***/ 3580:
+/***/ ((module) => {
+
+const META = Symbol('proc-log.meta')
+module.exports = {
+  META: META,
+  output: {
+    LEVELS: [
+      'standard',
+      'error',
+      'buffer',
+      'flush',
+    ],
+    KEYS: {
+      standard: 'standard',
+      error: 'error',
+      buffer: 'buffer',
+      flush: 'flush',
+    },
+    standard: function (...args) {
+      return process.emit('output', 'standard', ...args)
+    },
+    error: function (...args) {
+      return process.emit('output', 'error', ...args)
+    },
+    buffer: function (...args) {
+      return process.emit('output', 'buffer', ...args)
+    },
+    flush: function (...args) {
+      return process.emit('output', 'flush', ...args)
+    },
+  },
+  log: {
+    LEVELS: [
+      'notice',
+      'error',
+      'warn',
+      'info',
+      'verbose',
+      'http',
+      'silly',
+      'timing',
+      'pause',
+      'resume',
+    ],
+    KEYS: {
+      notice: 'notice',
+      error: 'error',
+      warn: 'warn',
+      info: 'info',
+      verbose: 'verbose',
+      http: 'http',
+      silly: 'silly',
+      timing: 'timing',
+      pause: 'pause',
+      resume: 'resume',
+    },
+    error: function (...args) {
+      return process.emit('log', 'error', ...args)
+    },
+    notice: function (...args) {
+      return process.emit('log', 'notice', ...args)
+    },
+    warn: function (...args) {
+      return process.emit('log', 'warn', ...args)
+    },
+    info: function (...args) {
+      return process.emit('log', 'info', ...args)
+    },
+    verbose: function (...args) {
+      return process.emit('log', 'verbose', ...args)
+    },
+    http: function (...args) {
+      return process.emit('log', 'http', ...args)
+    },
+    silly: function (...args) {
+      return process.emit('log', 'silly', ...args)
+    },
+    timing: function (...args) {
+      return process.emit('log', 'timing', ...args)
+    },
+    pause: function () {
+      return process.emit('log', 'pause')
+    },
+    resume: function () {
+      return process.emit('log', 'resume')
+    },
+  },
+  time: {
+    LEVELS: [
+      'start',
+      'end',
+    ],
+    KEYS: {
+      start: 'start',
+      end: 'end',
+    },
+    start: function (name, fn) {
+      process.emit('time', 'start', name)
+      function end () {
+        return process.emit('time', 'end', name)
+      }
+      if (typeof fn === 'function') {
+        const res = fn()
+        if (res && res.finally) {
+          return res.finally(end)
+        }
+        end()
+        return res
+      }
+      return end
+    },
+    end: function (name) {
+      return process.emit('time', 'end', name)
+    },
+  },
+  input: {
+    LEVELS: [
+      'start',
+      'end',
+      'read',
+    ],
+    KEYS: {
+      start: 'start',
+      end: 'end',
+      read: 'read',
+    },
+    start: function (fn) {
+      process.emit('input', 'start')
+      function end () {
+        return process.emit('input', 'end')
+      }
+      if (typeof fn === 'function') {
+        const res = fn()
+        if (res && res.finally) {
+          return res.finally(end)
+        }
+        end()
+        return res
+      }
+      return end
+    },
+    end: function () {
+      return process.emit('input', 'end')
+    },
+    read: function (...args) {
+      let resolve, reject
+      const promise = new Promise((_resolve, _reject) => {
+        resolve = _resolve
+        reject = _reject
+      })
+      process.emit('input', 'read', resolve, reject, ...args)
+      return promise
+    },
+  },
+}
 
 
 /***/ }),
@@ -60853,10 +61325,12 @@ const changelogParser = __nccwpck_require__(6352);
 const parseChangelog = util.promisify(changelogParser);
 
 /**
- * @param {string} packageName 
+ * @param {string} packageName
  * @param {string} token
  */
 const fetchNPMVersions = async (packageName, token) => {
+    console.log('packageName', packageName);
+
     const {versions} = /** @type {Package} */(await npmFetch.json(
         `http://registry.npmjs.org/${packageName}`,
         {token},
@@ -60908,12 +61382,12 @@ module.exports = {
 
 /**
  * @typedef {object} VersionObj
- * @prop {string} version 
+ * @prop {string} version
  */
 
 /**
  * @typedef {object} Package
- * @prop {Record<string, VersionObj>} versions  
+ * @prop {Record<string, VersionObj>} versions
  */
 
 
@@ -78947,7 +79421,7 @@ module.exports = {"i8":"3.0.4"};
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"name":"npm-registry-fetch","version":"16.1.0","description":"Fetch-based http client for use with npm registry APIs","main":"lib","files":["bin/","lib/"],"scripts":{"eslint":"eslint","lint":"eslint \\"**/*.js\\"","lintfix":"npm run lint -- --fix","test":"tap","posttest":"npm run lint","npmclilint":"npmcli-lint","postsnap":"npm run lintfix --","postlint":"template-oss-check","snap":"tap","template-oss-apply":"template-oss-apply --force"},"repository":{"type":"git","url":"https://github.com/npm/npm-registry-fetch.git"},"keywords":["npm","registry","fetch"],"author":"GitHub Inc.","license":"ISC","dependencies":{"make-fetch-happen":"^13.0.0","minipass":"^7.0.2","minipass-fetch":"^3.0.0","minipass-json-stream":"^1.0.1","minizlib":"^2.1.2","npm-package-arg":"^11.0.0","proc-log":"^3.0.0"},"devDependencies":{"@npmcli/eslint-config":"^4.0.0","@npmcli/template-oss":"4.19.0","cacache":"^18.0.0","nock":"^13.2.4","require-inject":"^1.4.4","ssri":"^10.0.0","tap":"^16.0.1"},"tap":{"check-coverage":true,"test-ignore":"test[\\\\\\\\/](util|cache)[\\\\\\\\/]","nyc-arg":["--exclude","tap-snapshots/**"]},"engines":{"node":"^16.14.0 || >=18.0.0"},"templateOSS":{"//@npmcli/template-oss":"This file is partially managed by @npmcli/template-oss. Edits may be overwritten.","version":"4.19.0","publish":"true"}}');
+module.exports = JSON.parse('{"name":"npm-registry-fetch","version":"17.0.1","description":"Fetch-based http client for use with npm registry APIs","main":"lib","files":["bin/","lib/"],"scripts":{"eslint":"eslint","lint":"eslint \\"**/*.{js,cjs,ts,mjs,jsx,tsx}\\"","lintfix":"npm run lint -- --fix","test":"tap","posttest":"npm run lint","npmclilint":"npmcli-lint","postsnap":"npm run lintfix --","postlint":"template-oss-check","snap":"tap","template-oss-apply":"template-oss-apply --force"},"repository":{"type":"git","url":"https://github.com/npm/npm-registry-fetch.git"},"keywords":["npm","registry","fetch"],"author":"GitHub Inc.","license":"ISC","dependencies":{"@npmcli/redact":"^2.0.0","make-fetch-happen":"^13.0.0","minipass":"^7.0.2","minipass-fetch":"^3.0.0","minipass-json-stream":"^1.0.1","minizlib":"^2.1.2","npm-package-arg":"^11.0.0","proc-log":"^4.0.0"},"devDependencies":{"@npmcli/eslint-config":"^4.0.0","@npmcli/template-oss":"4.21.4","cacache":"^18.0.0","nock":"^13.2.4","require-inject":"^1.4.4","ssri":"^10.0.0","tap":"^16.0.1"},"tap":{"check-coverage":true,"test-ignore":"test[\\\\\\\\/](util|cache)[\\\\\\\\/]","nyc-arg":["--exclude","tap-snapshots/**"]},"engines":{"node":"^16.14.0 || >=18.0.0"},"templateOSS":{"//@npmcli/template-oss":"This file is partially managed by @npmcli/template-oss. Edits may be overwritten.","version":"4.21.4","publish":"true"}}');
 
 /***/ })
 
@@ -79085,16 +79559,11 @@ async function run() {
                 core.info('Release is already exist. Nothing to do here');
             }
 
-            console.log('npm_token', npm_token);
-
             if (npm_token) {
                 let canPublish;
 
                 try {
                     const npmVersions = await fetchNPMVersions(name, npm_token);
-
-                    console.log('name', name);
-                    console.log('npmVersions', npmVersions);
 
                     canPublish = !npmVersions.includes(version); // new version
                 } catch (error) {

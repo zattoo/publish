@@ -33,14 +33,14 @@
         "changelog-parser": "3.0.1",
         "fs-extra": "11.2.0",
         "glob": "10.3.10",
-        "npm-registry-fetch": "16.1.0"
+        "npm-registry-fetch": "17.0.1"
     },
     "devDependencies": {
         "@types/changelog-parser": "2.8.4",
         "@types/fs-extra": "11.0.4",
         "@types/glob": "8.1.0",
         "@types/node": "20.11.18",
-        "@types/npm-registry-fetch": "8.0.7",
+        "@types/npm-registry-fetch": "",
         "typescript": "5.3.3"
     }
 }

@@ -8,10 +8,12 @@ const changelogParser = require('changelog-parser');
 const parseChangelog = util.promisify(changelogParser);
 
 /**
- * @param {string} packageName 
+ * @param {string} packageName
  * @param {string} token
  */
 const fetchNPMVersions = async (packageName, token) => {
+    console.log('packageName', packageName);
+
     const {versions} = /** @type {Package} */(await npmFetch.json(
         `http://registry.npmjs.org/${packageName}`,
         {token},
@@ -63,10 +65,10 @@ module.exports = {
 
 /**
  * @typedef {object} VersionObj
- * @prop {string} version 
+ * @prop {string} version
  */
 
 /**
  * @typedef {object} Package
- * @prop {Record<string, VersionObj>} versions  
+ * @prop {Record<string, VersionObj>} versions
  */
