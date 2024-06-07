@@ -2,7 +2,6 @@ const util = require('node:util');
 const {glob} = require('glob');
 const fse = require('fs-extra');
 const core = require('@actions/core');
-const npmFetch = require('npm-registry-fetch');
 const changelogParser = require('changelog-parser');
 
 const parseChangelog = util.promisify(changelogParser);
@@ -12,14 +11,18 @@ const parseChangelog = util.promisify(changelogParser);
  * @param {string} token
  */
 const fetchNPMVersions = async (packageName, token) => {
-    const response = /** @type {Package} */(await npmFetch.json(
-        `https://registry.npmjs.org/@zattoo/time`,
-        {token},
-    ));
+    const url = `https://registry.npmjs.org/${packageName}`;
+    const headers = {'Authorization': `Bearer ${token}`};
 
-    console.log('response', response);
+    try {
+        const response = await fetch(url, {headers});
+        const data = /** @type {Package} */ (await response.json());
 
-    return Object.values(response.versions).map(({version}) => version);
+        return Object.values(data.versions).map(({ version }) => version);
+    } catch (error) {
+        console.error(`Failed to fetch NPM versions for ${packageName}:`, error);
+        throw error;
+    }
 };
 
 /**

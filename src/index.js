@@ -67,8 +67,7 @@ async function run() {
                     tag,
                 });
             } catch {
-                console.log('Tag not found');
-            } // tag not found;
+            } // tag not found
 
             // @ts-expect-error tag_name is not part of the initialization object
             const canRelease = !tagResponse.data.tag_name;
@@ -96,19 +95,13 @@ async function run() {
 
                 try {
                     const npmVersions = await fetchNPMVersions(name, npm_token);
-
                     canPublish = !npmVersions.includes(version); // new version
-                } catch (error) {
-                    console.log(error);
-
+                } catch {
                     canPublish = true; // new package
                 }
 
                 if (canPublish) {
                     // await exec.exec(`npm publish ${path}`);
-
-                    throw 'exit';
-
                     core.info(`Published to npm registry: https://www.npmjs.com/package/${name}`);
                 } else {
                     core.info('Package is already exist. Nothing to do here');

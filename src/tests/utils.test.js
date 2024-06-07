@@ -1,5 +1,5 @@
 const {
-    getBody, 
+    getBody,
     fetchNPMVersions
 } = require  ('../utils.js');
 const { test } = require  ('node:test');
@@ -24,5 +24,5 @@ test('Gets the content using notes', async () => {
 test('Gets the content using changelog', async () => {
   const body = await getBody('CHANGELOG.md');
 
-  assert.equal(body.includes('Updated dependencies'), true)  
+  assert.equal(body.includes('Updated dependencies'), true)
 })
