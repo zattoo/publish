@@ -79085,12 +79085,15 @@ async function run() {
                 core.info('Release is already exist. Nothing to do here');
             }
 
+            console.log('npm_token', npm_token);
+
             if (npm_token) {
                 let canPublish;
 
                 try {
                     const npmVersions = await fetchNPMVersions(name, npm_token);
 
+                    console.log('name', name);
                     console.log('npmVersions', npmVersions);
 
                     canPublish = !npmVersions.includes(version); // new version
