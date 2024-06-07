@@ -101,7 +101,7 @@ async function run() {
                 }
 
                 if (canPublish) {
-                    // await exec.exec(`npm publish ${path}`);
+                    await exec.exec(`npm publish ${path}`);
                     core.info(`Published to npm registry: https://www.npmjs.com/package/${name}`);
                 } else {
                     core.info('Package is already exist. Nothing to do here');
