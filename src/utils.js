@@ -1,28 +1,22 @@
+const fsp = require('node:fs/promises');
 const util = require('node:util');
+const exec = require('node:child_process').exec;
+
 const {glob} = require('glob');
-const fse = require('fs-extra');
 const core = require('@actions/core');
 const changelogParser = require('changelog-parser');
 
-const parseChangelog = util.promisify(changelogParser);
+const execPromise = util.promisify(exec);
 
 /**
  * @param {string} packageName
- * @param {string} token
+ * @returns {Promise<string[]>}
  */
-const fetchNPMVersions = async (packageName, token) => {
-    const url = `https://registry.npmjs.org/${packageName}`;
-    const headers = {'Authorization': `Bearer ${token}`};
+const fetchVersions = async (packageName) => {
+    const {stdout} = await execPromise(`npm view ${packageName} versions --json`);
+    const versions = JSON.parse(stdout);
 
-    try {
-        const response = await fetch(url, {headers});
-        const data = /** @type {Package} */ (await response.json());
-
-        return Object.values(data.versions).map(({ version }) => version);
-    } catch (error) {
-        console.error(`Failed to fetch NPM versions for ${packageName}:`, error);
-        throw error;
-    }
+    return typeof versions === 'string' ? [versions] : versions;
 };
 
 /**
@@ -42,7 +36,7 @@ const getBody = async (changelogPath, notesPath) => {
             core.debug(JSON.stringify(filePaths));
 
             await Promise.all(filePaths.map(async (filePath) => {
-                const fileContent = await fse.readFile(filePath, {encoding: 'utf-8'});
+                const fileContent = await fsp.readFile(filePath, 'utf8');
                 if (fileContent) {
                     outputContent.push(fileContent.trim());
                 }
@@ -57,14 +51,20 @@ const getBody = async (changelogPath, notesPath) => {
         }
     }
 
-    const changelog = await parseChangelog(changelogPath);
-    return changelog.versions[0].body;
+    const changelog = await changelogParser(changelogPath);
+    const [lastVersion] = changelog.versions;
+
+    if (!lastVersion) {
+        throw new Error('Failed to retrieve changelog.');
+    }
+
+    return lastVersion.body;
 };
 
 module.exports = {
-    fetchNPMVersions,
+    fetchVersions,
     getBody,
-}
+};
 
 /**
  * @typedef {object} VersionObj

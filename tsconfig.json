@@ -3,7 +3,7 @@
       "target": "ESNext",
       "lib": ["ESNext"],
       "module": "NodeNext",
-      "baseUrl": "./src",
+      "baseUrl": ".",
       "types": [
         "node",
       ],
@@ -13,7 +13,12 @@
       "esModuleInterop": true,
       "forceConsistentCasingInFileNames": true,
       "strict": true,
+      "noImplicitAny": true,
+      "noImplicitReturns": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+      "noUncheckedIndexedAccess": true,
       "skipLibCheck": true
     },
-    "include": ["src/**/*",],
+    "include": ["src/**/*"],
   }

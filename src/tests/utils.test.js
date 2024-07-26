@@ -1,17 +1,15 @@
 const {
     getBody,
-    fetchNPMVersions
+    fetchVersions
 } = require  ('../utils.js');
 const { test } = require  ('node:test');
 const assert = require  ('node:assert/strict');
 
-const token = '5047ed13-698a-494c-9c4c-8fa26ecb66f5';
-
 test('Obtains the versions', async () => {
-    const versions = await fetchNPMVersions('react', token)
+    const versions = await fetchVersions('lodash');
 
-    assert.equal(versions[0], '0.0.1');
-    assert.equal(versions[3], '0.1.2');
+    assert.equal(versions[0], '0.1.0');
+    assert.equal(versions[3], '0.2.2');
 });
 
 test('Gets the content using notes', async () => {
