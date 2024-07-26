@@ -31140,28 +31140,24 @@ function wrappy (fn, cb) {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const fsp = __nccwpck_require__(3977);
+const util = __nccwpck_require__(7261);
+const exec = (__nccwpck_require__(7718).exec);
 
 const {glob} = __nccwpck_require__(8211);
 const core = __nccwpck_require__(2186);
 const changelogParser = __nccwpck_require__(6352);
 
+const execPromise = util.promisify(exec);
+
 /**
  * @param {string} packageName
- * @param {string} token
+ * @returns {Promise<string[]>}
  */
-const fetchNPMVersions = async (packageName, token) => {
-    const url = `https://registry.npmjs.org/${packageName}`;
-    const headers = {'Authorization': `Bearer ${token}`};
+const fetchVersions = async (packageName) => {
+    const {stdout} = await execPromise(`npm view ${packageName} versions --json`);
+    const versions = JSON.parse(stdout);
 
-    try {
-        const response = await fetch(url, {headers});
-        const data = /** @type {Package} */ (await response.json());
-
-        return Object.values(data.versions).map(({ version }) => version);
-    } catch (error) {
-        console.error(`Failed to fetch NPM versions for ${packageName}:`, error);
-        throw error;
-    }
+    return typeof versions === 'string' ? [versions] : versions;
 };
 
 /**
@@ -31199,13 +31195,17 @@ const getBody = async (changelogPath, notesPath) => {
     const changelog = await changelogParser(changelogPath);
     const [lastVersion] = changelog.versions;
 
+    if (!lastVersion) {
+        throw new Error('Failed to retrieve changelog.');
+    }
+
     return lastVersion.body;
 };
 
 module.exports = {
-    fetchNPMVersions,
+    fetchVersions,
     getBody,
-}
+};
 
 /**
  * @typedef {object} VersionObj
@@ -31329,6 +31329,22 @@ module.exports = require("https");
 
 "use strict";
 module.exports = require("net");
+
+/***/ }),
+
+/***/ 8061:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:assert");
+
+/***/ }),
+
+/***/ 7718:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:child_process");
 
 /***/ }),
 
@@ -41913,31 +41929,22 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 const fsp = __nccwpck_require__(3977);
-const {glob} = __nccwpck_require__(8211);
+const assert = __nccwpck_require__(8061);
+
 const core = __nccwpck_require__(2186);
 const exec = __nccwpck_require__(1514);
 const github = __nccwpck_require__(5438);
+const {glob} = __nccwpck_require__(8211);
 
-const {getBody} = __nccwpck_require__(1608);
-
-/**
- * @param {Octokit} octokit
- * @param {string} packageName
- * @returns {Promise<string[]>}
- */
-const getVersions = async (octokit, packageName) => {
-    const versions = await octokit.request('GET /orgs/{org}/packages/{package_type}/{package_name}/versions', {
-        package_type: 'npm',
-        package_name: packageName,
-        org: 'zattoo',
-    });
-
-    return versions.data.map(({name}) => name);
-}
+const {
+    getBody,
+    fetchVersions,
+} = __nccwpck_require__(1608);
 
 async function run() {
     try {
         const github_token = core.getInput('github_token', {required: true});
+        const publish_package = core.getBooleanInput('publish_package');
         const sources = core.getInput('sources');
         const notesPath = core.getInput('notes');
 
@@ -41960,45 +41967,31 @@ async function run() {
 
             /** @type {Package} */
             const pkg = JSON.parse(rawPkg);
+            const {name, version} = pkg;
 
-            if (!pkg) {
-                throw Error(`${pathToPackage} is missing`);
-            }
-
-            const packageName = pkg.name;
-
-            if (!packageName) {
-                throw Error(`Name in ${pathToPackage} is missing`);
-            }
-
-            const version = pkg.version;
-
-            if (!version) {
-                throw Error(`Version in ${pathToPackage} is missing`);
-            }
+            assert.ok(name, `Name in ${pathToPackage} is missing`);
+            assert.ok(version, `Version in ${pathToPackage} is missing`);
 
             const tag = isSingle
                 ? version // for ex. '1.2.3', '3.2020.0'
-                : `${version}-${packageName.replace('@zattoo/', '')}` // for ex. '3.2020.0-app', '3.17.2-zapi'
+                : `${version}-${name.replace('@zattoo/', '')}` // for ex. '3.2020.0-app', '3.17.2-zapi'
 
             core.info(`\nChecking ${tag}`);
 
             const owner = github.context.repo.owner;
             const repo = github.context.repo.repo;
 
-            let tagResponse = {data: {}};
+            let canRelease = true;
 
             try {
-                tagResponse = await octokit.request('GET /repos/{owner}/{repo}/releases/tags/{tag}', {
+                let tagResponse = await octokit.request('GET /repos/{owner}/{repo}/releases/tags/{tag}', {
                     owner,
                     repo,
                     tag,
                 });
-            } catch {
-            } // tag not found
 
-            // @ts-expect-error tag_name is not part of the initialization object
-            const canRelease = !tagResponse.data.tag_name;
+                canRelease = !tagResponse.data.tag_name;
+            } catch {} // tag not found
 
             if (canRelease) {
                 const body = await getBody(`${path}/CHANGELOG.md`, notesPath);
@@ -42018,20 +42011,23 @@ async function run() {
                 core.info('Release is already exist. Nothing to do here');
             }
 
-            let canPublish;
+            if (publish_package) {
+                let canPublish = false;
 
-            try {
-                const versions = await getVersions(octokit, packageName);
-                canPublish = !versions.includes(version); // new version
-            } catch {
-                canPublish = true; // new package
-            }
+                try {
+                    const versions = await fetchVersions(name);
 
-            if (canPublish) {
-                await exec.exec(`npm publish ${path}`);
-                core.info(`Published to Github registry: https://www.npmjs.com/package/${packageName}`);
-            } else {
-                core.info('Package is already exist. Nothing to do here');
+                    canPublish = !versions.includes(version); // new version
+                } catch {
+                    canPublish = true; // new package
+                }
+
+                if (canPublish) {
+                    await exec.exec(`npm publish ${path}`);
+                    core.info(`Published package "${name}@${version}"`);
+                } else {
+                    core.info('Package is already exist. Nothing to do here');
+                }
             }
         }
     } catch (error) {
@@ -42045,10 +42041,6 @@ run();
  * @typedef {object} Package
  * @prop {string} name
  * @prop {string} version
- */
-
-/**
- * @typedef {import('@octokit/core').Octokit} Octokit
  */
 
 })();
