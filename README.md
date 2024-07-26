@@ -12,7 +12,7 @@ Required. GitHub Token from action context
 
 ### `publish_package`
 
-`string`
+`boolean`
 
 Optional. If not provided, publishing to the registry will be skipped.
 
