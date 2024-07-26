@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+
+- The action permits publishing packages on any registry
+- [Breaking change] `npm_token` parameter was superseded by `publish_package`
+
 ## 1.2.1 - 07.06.2024
 
 Fix private npm packages fetching
@@ -12,10 +17,6 @@ Fix private npm packages fetching
 ### Infrastructure
 - Updated dependencies
 - Upgraded from node `12` to `20`
-
-## 1.1.2 - 02.01.2023
-
-Fixed Release notes path
 
 ## 1.1.2 - 02.01.2023
 

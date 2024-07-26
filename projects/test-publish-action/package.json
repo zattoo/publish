@@ -1,0 +1,26 @@
+{
+    "name": "@zattoo/test-publish-action",
+    "version": "1.0.0",
+    "description": "A sample package used for testing of zattoo/publish action",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/zattoo/publish.git",
+        "directory": "projects/test-publish-action"
+    },
+    "publishConfig": {
+        "access": "restricted",
+        "registry": "https://npm.pkg.github.com"
+    },
+    "keywords": [
+        "GitHub Actions",
+        "publish",
+        "npm",
+        "release"
+    ],
+    "author": "",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/zattoo/publish/issues"
+    },
+    "homepage": "https://github.com/zattoo/publish#readme"
+}

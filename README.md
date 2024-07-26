@@ -10,12 +10,11 @@ GitHub Action to release projects and publish packages
 
 Required. GitHub Token from action context
 
-### `npm_token`
+### `publish_package`
 
-`string`
+`boolean`
 
-Optional. If not provided, publishing to npm will be skipped.
-NPM token with publish permission.
+Optional. If not provided, publishing to the registry will be skipped.
 
 ### `sources`
 
@@ -43,6 +42,5 @@ jobs:
       - uses: zattoo/publish@v1
         with:
           github_token: ${{github.token}}
-          npm_token: ${{secrets.NPM_TOKEN}}
           sources: 'packages/*'
 ````

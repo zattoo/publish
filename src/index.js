@@ -1,18 +1,20 @@
-const fse = require('fs-extra');
-const {glob} = require('glob');
+const fsp = require('node:fs/promises');
+const assert = require('node:assert');
+
 const core = require('@actions/core');
 const exec = require('@actions/exec');
 const github = require('@actions/github');
+const {glob} = require('glob');
 
 const {
     getBody,
-    fetchNPMVersions
+    fetchVersions,
 } = require('./utils');
 
 async function run() {
     try {
         const github_token = core.getInput('github_token', {required: true});
-        const npm_token = core.getInput('npm_token');
+        const publish_package = core.getBooleanInput('publish_package');
         const sources = core.getInput('sources');
         const notesPath = core.getInput('notes');
 
@@ -24,30 +26,21 @@ async function run() {
 
         for await (const sourcePath of sourcePaths) {
             const path = `./${sourcePath}`;
+            const stats = await fsp.lstat(path);
 
-            if (!fse.lstatSync(path).isDirectory()) {
+            if (!stats.isDirectory()) {
                 continue;
             }
 
             const pathToPackage = `${path}/package.json`;
+            const rawPkg = await fsp.readFile(pathToPackage, 'utf8');
 
-            const pkg = /** @type {Package} */(await fse.readJSON(pathToPackage));
+            /** @type {Package} */
+            const pkg = JSON.parse(rawPkg);
+            const {name, version} = pkg;
 
-            if (!pkg) {
-                throw Error(`${pathToPackage} is missing`);
-            }
-
-            const name = pkg.name;
-
-            if (!name) {
-                throw Error(`Name in ${pathToPackage} is missing`);
-            }
-
-            const version = pkg.version;
-
-            if (!version) {
-                throw Error(`Version in ${pathToPackage} is missing`);
-            }
+            assert.ok(name, `Name in ${pathToPackage} is missing`);
+            assert.ok(version, `Version in ${pathToPackage} is missing`);
 
             const tag = isSingle
                 ? version // for ex. '1.2.3', '3.2020.0'
@@ -58,19 +51,17 @@ async function run() {
             const owner = github.context.repo.owner;
             const repo = github.context.repo.repo;
 
-            let tagResponse = {data: {}};
+            let canRelease = true;
 
             try {
-                tagResponse = await octokit.request('GET /repos/{owner}/{repo}/releases/tags/{tag}', {
+                let tagResponse = await octokit.request('GET /repos/{owner}/{repo}/releases/tags/{tag}', {
                     owner,
                     repo,
                     tag,
                 });
-            } catch {
-            } // tag not found
 
-            // @ts-expect-error tag_name is not part of the initialization object
-            const canRelease = !tagResponse.data.tag_name;
+                canRelease = !tagResponse.data.tag_name;
+            } catch {} // tag not found
 
             if (canRelease) {
                 const body = await getBody(`${path}/CHANGELOG.md`, notesPath);
@@ -90,19 +81,20 @@ async function run() {
                 core.info('Release is already exist. Nothing to do here');
             }
 
-            if (npm_token) {
-                let canPublish;
+            if (publish_package) {
+                let canPublish = false;
 
                 try {
-                    const npmVersions = await fetchNPMVersions(name, npm_token);
-                    canPublish = !npmVersions.includes(version); // new version
+                    const versions = await fetchVersions(name);
+
+                    canPublish = !versions.includes(version); // new version
                 } catch {
                     canPublish = true; // new package
                 }
 
                 if (canPublish) {
                     await exec.exec(`npm publish ${path}`);
-                    core.info(`Published to npm registry: https://www.npmjs.com/package/${name}`);
+                    core.info(`Published package "${name}@${version}"`);
                 } else {
                     core.info('Package is already exist. Nothing to do here');
                 }
