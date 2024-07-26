@@ -15,14 +15,14 @@ test('Obtains the versions', async () => {
 });
 
 test('Gets the content using notes', async () => {
-  const body = await getBody('src/', 'src/tests/notes');
+  const body = await getBody('src/', 'src/tests/assets/notes');
 
   assert.equal(body.includes('This is foo'), true);
   assert.equal(body.includes('This is bar'), true);
 })
 
 test('Gets the content using changelog', async () => {
-  const body = await getBody('CHANGELOG.md');
+  const body = await getBody('src/tests/assets/CHANGELOG.md');
 
-  assert.equal(body.includes('Updated dependencies'), true)
+  assert.equal(body.includes('Initial release'), true)
 })
