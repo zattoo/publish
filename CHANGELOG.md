@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+
+### Infrastructure
+- Upgraded the action runtime from node `20` to `24`
+- Updated workflows to `actions/checkout@v7` and `actions/setup-node@v7`
+- Replaced the `glob` dependency with node's built-in glob
+- Updated `typescript`, `@vercel/ncc` and `@types/node`
+
 ## 2.0.0 - 29.07.2024
 
 - The action permits publishing packages on any registry
