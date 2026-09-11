@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Updated workflows to `actions/checkout@v7` and `actions/setup-node@v7`
 - Replaced the `glob` dependency with node's built-in glob
 - Updated `typescript`, `@vercel/ncc` and `@types/node`
+- Update codeowners to @zattoo/chapter-technology-frontend
 
 ## 2.0.0 - 29.07.2024
 
