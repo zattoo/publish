@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 3.0.0 - 11.09.2026
 
 ### Infrastructure
 - Upgraded the action runtime from node `20` to `24`
