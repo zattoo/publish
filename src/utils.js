@@ -2,7 +2,6 @@ const fsp = require('node:fs/promises');
 const util = require('node:util');
 const exec = require('node:child_process').exec;
 
-const {glob} = require('glob');
 const core = require('@actions/core');
 const changelogParser = require('changelog-parser');
 
@@ -31,7 +30,7 @@ const getBody = async (changelogPath, notesPath) => {
         try {
             /** @type {string[]} */
             const outputContent = [];
-            const filePaths = await glob(`${notesPath}/*.md`);
+            const filePaths = await Array.fromAsync(fsp.glob(`${notesPath}/*.md`));
 
             core.debug(JSON.stringify(filePaths));
 

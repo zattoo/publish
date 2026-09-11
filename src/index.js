@@ -1,10 +1,10 @@
 const fsp = require('node:fs/promises');
+const {globSync} = require('node:fs');
 const assert = require('node:assert');
 
 const core = require('@actions/core');
 const exec = require('@actions/exec');
 const github = require('@actions/github');
-const {glob} = require('glob');
 
 const {
     getBody,
@@ -22,7 +22,7 @@ async function run() {
 
         const isSingle = !sources;
 
-        const sourcePaths = isSingle ? [''] : glob.sync(sources);
+        const sourcePaths = isSingle ? [''] : globSync(sources);
 
         for await (const sourcePath of sourcePaths) {
             const path = `./${sourcePath}`;
