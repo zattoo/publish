@@ -37,7 +37,7 @@ jobs:
   deploy:
     name: Package
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # your stuff
       - uses: zattoo/publish@v1
         with:

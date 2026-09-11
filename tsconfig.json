@@ -3,7 +3,6 @@
       "target": "ESNext",
       "lib": ["ESNext"],
       "module": "NodeNext",
-      "baseUrl": ".",
       "types": [
         "node",
       ],
