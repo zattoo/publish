@@ -14,7 +14,7 @@ Required. GitHub Token from action context
 
 `boolean`
 
-Optional. If not provided, publishing to the registry will be skipped.
+Optional, defaults to `false`. If not provided, publishing to the registry will be skipped.
 
 ### `sources`
 
@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       # your stuff
-      - uses: zattoo/publish@v1
+      - uses: zattoo/publish@v3
         with:
           github_token: ${{github.token}}
           sources: 'packages/*'
