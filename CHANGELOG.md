@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+
+### Fixed
+- `publish_package` defaults to `false`, so omitting it no longer fails with a "Core Schema" error
+
 ## 3.0.0 - 11.09.2026
 
 ### Infrastructure
